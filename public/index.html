@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Calculatrice - Stockage Secret</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e1e2e">
+</head>
+<body>
+    <div class="container">
+        <!-- Interface calculatrice -->
+        <div id="calculator-app" class="calculator active">
+            <div class="display">
+                <div class="previous-operand"></div>
+                <div class="current-operand">0</div>
+            </div>
+            <button class="span-two">AC</button>
+            <button>DEL</button>
+            <button>÷</button>
+            <button>7</button>
+            <button>8</button>
+            <button>9</button>
+            <button>×</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+            <button>-</button>
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>+</button>
+            <button>0</button>
+            <button>.</button>
+            <button class="span-two">=</button>
+        </div>
+
+        <!-- Interface gestionnaire de fichiers -->
+        <div id="file-manager" class="file-manager">
+            <div class="file-header">
+                <h2>📁 Coffre-fort numérique</h2>
+                <button id="close-file-manager" class="close-btn">✕</button>
+            </div>
+            
+            <div class="file-info">
+                <p>Mot de passe actif: <strong id="active-password"></strong></p>
+                <button id="logout-btn" class="logout-btn">🔒 Fermer le coffre</button>
+            </div>
+
+            <div class="upload-area">
+                <input type="file" id="file-input" multiple accept="video/*,image/*,application/pdf,audio/*">
+                <label for="file-input" class="upload-label">📤 Choisir des fichiers</label>
+                <button id="upload-btn" class="upload-btn">⬆️ Uploader & Nettoyer</button>
+                <button id="clear-memory-btn" class="clear-memory-btn">🗑️ Vider mémoire téléphone</button>
+            </div>
+
+            <div class="files-list">
+                <h3>📄 Vos fichiers stockés</h3>
+                <div id="files-container" class="files-container">
+                    <p class="loading">Chargement...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour visualisation -->
+    <div id="viewer-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <div id="viewer-content"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
