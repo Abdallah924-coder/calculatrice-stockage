@@ -397,19 +397,101 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// PWA Service Worker
+// PWA Service Worker avec meilleure gestion d'erreurs
 async function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         try {
-            await navigator.serviceWorker.register('/sw.js');
-            console.log('✅ Service Worker enregistré');
+            // Désenregistrer les anciens service workers
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                if (registration.active && registration.active.scriptURL.includes('sw.js')) {
+                    console.log('Ancien SW trouvé, mise à jour...');
+                }
+            }
+            
+            // Enregistrer le nouveau
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+                scope: '/'
+            });
+            
+            console.log('✅ Service Worker enregistré avec succès:', registration);
+            
+            // Vérifier la mise à jour
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('Nouveau Service Worker en cours d\'installation:', newWorker);
+            });
+            
+            // Demander la notification d'installation PWA
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                // Afficher un bouton d'installation personnalisé
+                showInstallButton();
+            });
+            
         } catch (error) {
-            console.log('❌ Service Worker échec:', error);
+            console.error('❌ Service Worker échec:', error);
+            // Afficher un message à l'utilisateur
+            showPWAMessage();
         }
+    } else {
+        console.log('Service Worker non supporté');
+        showPWAMessage();
     }
 }
 
-// Exposer certaines fonctions globalement pour les appels onclick
-window.viewFile = viewFile;
-window.downloadFile = downloadFile;
-window.deleteFile = deleteFile;
+function showInstallButton() {
+    // Créer un bouton d'installation flottant
+    const installBtn = document.createElement('button');
+    installBtn.textContent = '📱 Installer l\'application';
+    installBtn.style.position = 'fixed';
+    installBtn.style.bottom = '20px';
+    installBtn.style.right = '20px';
+    installBtn.style.zIndex = '1000';
+    installBtn.style.background = '#28a745';
+    installBtn.style.color = 'white';
+    installBtn.style.border = 'none';
+    installBtn.style.padding = '12px 20px';
+    installBtn.style.borderRadius = '25px';
+    installBtn.style.cursor = 'pointer';
+    installBtn.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    
+    installBtn.onclick = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const choiceResult = await deferredPrompt.userChoice;
+            if (choiceResult.outcome === 'accepted') {
+                console.log('Installation acceptée');
+            }
+            deferredPrompt = null;
+            installBtn.remove();
+        }
+    };
+    
+    document.body.appendChild(installBtn);
+}
+
+function showPWAMessage() {
+    console.log('PWA non disponible sur ce navigateur');
+    // Optionnel: afficher un message pour les utilisateurs iOS
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        setTimeout(() => {
+            const msg = document.createElement('div');
+            msg.style.position = 'fixed';
+            msg.style.bottom = '20px';
+            msg.style.left = '20px';
+            msg.style.right = '20px';
+            msg.style.background = '#333';
+            msg.style.color = 'white';
+            msg.style.padding = '15px';
+            msg.style.borderRadius = '10px';
+            msg.style.zIndex = '1000';
+            msg.style.fontSize = '14px';
+            msg.innerHTML = '📱 Pour installer sur iPhone: Menu → "Ajouter à l\'écran d\'accueil"';
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 5000);
+        }, 2000);
+    }
+}

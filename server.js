@@ -10,7 +10,38 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// SERVIR LES FICHIERS STATIQUES AVEC LES BONS HEADERS POUR PWA
+app.use(express.static('public', {
+    setHeaders: (res, filePath) => {
+        // Pour le service worker - NE PAS LE METTRE EN CACHE
+        if (filePath.endsWith('sw.js')) {
+            res.setHeader('Service-Worker-Allowed', '/');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+        // Pour le manifest
+        if (filePath.endsWith('manifest.json')) {
+            res.setHeader('Content-Type', 'application/manifest+json');
+            res.setHeader('Cache-Control', 'public, max-age=600');
+        }
+    }
+}));
+
+// Route spécifique pour le service worker
+app.get('/sw.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+
+// Route pour le manifest
+app.get('/manifest.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
 
 // Créer le dossier uploads s'il n'existe pas
 if (!fs.existsSync('uploads')) {
@@ -30,7 +61,6 @@ const storage = multer.diskStorage({
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
         const nameWithoutExt = path.basename(file.originalname, ext);
-        // Nettoyer le nom pour l'affichage
         const cleanName = nameWithoutExt.substring(0, 50);
         cb(null, uniqueSuffix + '-' + cleanName + ext);
     }
@@ -38,10 +68,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 500 * 1024 * 1024 } // 500MB max pour les vidéos
+    limits: { fileSize: 500 * 1024 * 1024 }
 });
 
-// Routes API
+// Routes API (gardez vos routes existantes)
 app.get('/api/files/:password', (req, res) => {
     const userFolder = path.join(__dirname, 'uploads', req.params.password);
     
@@ -56,7 +86,6 @@ app.get('/api/files/:password', (req, res) => {
         const originalName = parts.slice(2).join('-');
         const ext = path.extname(originalName).toLowerCase();
         
-        // Déterminer le type de fichier
         let fileType = 'other';
         if (['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)) fileType = 'video';
         else if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(ext)) fileType = 'image';
@@ -73,7 +102,6 @@ app.get('/api/files/:password', (req, res) => {
         };
     });
     
-    // Trier par date décroissante
     filesInfo.sort((a, b) => new Date(b.modified) - new Date(a.modified));
     res.json(filesInfo);
 });
@@ -128,6 +156,11 @@ app.get('/api/view/:password/:filename', (req, res) => {
     }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Serveur démarré sur http://0.0.0.0:${PORT}`);
+// Route pour servir l'index.html sur toutes les autres routes (SPA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {
+    console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });
